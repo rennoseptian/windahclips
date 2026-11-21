@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from 'react';
-import {AbsoluteFill, Sequence, staticFile, useDelayRender} from 'remotion';
+import {AbsoluteFill, interpolate, Sequence, staticFile, useDelayRender} from 'remotion';
 import {Audio} from '@remotion/media';
 import {loadFont} from '@remotion/fonts';
 import {Drop} from './edit/Drop';
@@ -22,8 +22,22 @@ export const WindahJedag: React.FC = () => {
 
   return (
     <AbsoluteFill style={{backgroundColor: '#000'}}>
-      {/* Lagu: audio Hook&Lagu.mp4 utuh dari awal sampai habis (drop mulai 10.0 dtk) */}
-      <Audio name="Lagu" src={staticFile('Video/Hook&Lagu.mp4')} />
+      {/* Suara Windah mentah (raw.mp4) hanya selama hook */}
+      <Sequence durationInFrames={HOOK_END} name="Suara hook">
+        <Audio name="Suara" src={staticFile('Video/raw.mp4')} volume={1.4} />
+      </Sequence>
+      {/* Funk mentah: hook 0-10 dtk direndahkan di bawah suara, drop penuh; fade 20.7-21.5 dtk.
+          Offset 1.2365 dtk = posisi lagu yang sinkron dengan Hook&Lagu.mp4 (korelasi 0.9996). */}
+      <Audio
+        name="Funk"
+        src={staticFile('Audio/FUNK POWER (Ultra Slowed).mp3')}
+        trimBefore={37}
+        volume={(fr) => {
+          const base = interpolate(fr, [HOOK_END - 3, HOOK_END], [0.2, 0.95], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+          const fade = interpolate(fr, [622, 644], [1, 0], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+          return base * fade;
+        }}
+      />
 
       <Sequence durationInFrames={HOOK_END} name="Hook (kamera ikut kepala)">
         <Hook />

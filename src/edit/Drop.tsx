@@ -4,6 +4,7 @@ import {Audio, Video} from '@remotion/media';
 import {CLIPS, FACE, RAMPS, SFX, SHOTS, type ClipId, type DropShot} from './data';
 import {HITS} from './measured';
 import {DROP_FRAMES, FPS, HEIGHT, HOOK_END, WIDTH, df} from './timing';
+import {FONT_MAIN} from './Words';
 
 const SRC = HEIGHT; // sumber 1:1 di-cover ke tinggi 1350 -> 1350x1350
 const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
@@ -35,7 +36,7 @@ const pulse = (tg: number) => {
     const d = tg - HITS[i][0] + 1 / 60;
     if (d < 0) break;
     if (d > 0.6) continue;
-    const w = Math.min(1.5, HITS[i][1] / 1.1);
+    const w = Math.min(1.4, HITS[i][1] / 1.2);
     const e = Math.exp(-d / 0.08) * w;
     p += e;
     dx += (i % 2 ? 1 : -1) * e * Math.cos(d * 58);
@@ -84,34 +85,36 @@ const ShotView: React.FC<{shot: DropShot; index: number; dur: number}> = ({shot,
   const {p, dx: sdx, dy: sdy} = pulse(tg);
 
   // --- kamera: wajah dikunci ke titik `at`, ditambah drift, punch zoom, shake & whip saat potong ---
-  const drift = interpolate(lf, [0, dur], [1, 1.07], {extrapolateRight: 'clamp'});
+  const drift = interpolate(lf, [0, dur], [1, 1.1], {extrapolateRight: 'clamp'});
   const [fu, fv] = faceAt(shot.clip, srcT);
-  const Z = shot.z * (1 + 0.06 * p) * drift;
+  const Z = shot.z * (1 + 0.04 * p) * drift;
   const S = SRC * Z;
 
   // whip: geser kuat tepat setelah potongan, meluruh cepat (diukur di referensi: ~45px/360 dalam 3 frame, meluruh ~10 frame)
   const wa = lf < 3 ? lf / 3 : Math.exp(-(lf - 3) / 4);
   const wdir = [[-1, 0], [1, 0], [0, -1], [0, 1]][shot.whip];
-  const whipX = wdir[0] * 110 * wa * (lf === 0 ? 0.2 : 1);
-  const whipY = wdir[1] * 110 * wa * (lf === 0 ? 0.2 : 1);
+  const isWhip = shot.tr === 'whip';
+  const whipAmp = isWhip ? 110 : 0;
+  const whipX = wdir[0] * whipAmp * wa * (lf === 0 ? 0.2 : 1);
+  const whipY = wdir[1] * whipAmp * wa * (lf === 0 ? 0.2 : 1);
   const jx = 2.4 * Math.sin(tg * 41) + 1.6 * Math.sin(tg * 23 + 1);
   const jy = 2.0 * Math.cos(tg * 37) + 1.4 * Math.sin(tg * 19 + 2);
-  const shakeX = sdx * 16 + jx;
-  const shakeY = sdy * 14 + jy;
+  const shakeX = sdx * 11 + jx;
+  const shakeY = sdy * 9 + jy;
 
   const L = clamp(shot.at[0] * WIDTH - fu * S + whipX + shakeX, WIDTH - S - 60, 60);
   const T = clamp(shot.at[1] * HEIGHT - fv * S + whipY + shakeY, HEIGHT - S - 60, 60);
 
-  // --- blur: mulai kuat di frame potongan lalu meluruh (di referensi lap ~0 di frame potong, pulih 6-10 frame) ---
-  const k = Math.exp(-lf / 3.6);
+  // --- transisi gaya referensi beat: potong keras -> frame defocus + zoom besar yang mengendap ~8 frame ---
+  const k = Math.exp(-lf / 3.2);
   const horizontal = shot.whip < 2;
-  const bx = (horizontal ? 46 : 5) * k;
-  const by = (horizontal ? 5 : 46) * k;
-  const trScale = 1 + 0.1 * k;
+  const bx = isWhip ? (horizontal ? 46 : 5) * k : 30 * k;
+  const by = isWhip ? (horizontal ? 5 : 46) * k : 30 * k;
+  const trScale = isWhip ? 1 + 0.08 * k : 1 + 0.24 * k;
 
   const rgbIn = (shot.rgb ?? 0) * Math.exp(-lf / 6);
   const d = rgbIn + 3 + 9 * p;
-  const bright = 1 + 0.16 * p;
+  const bright = 1 + 0.12 * p;
 
   const insetScale = shot.inset
     ? interpolate(lf, [0, 9], [1, shot.inset], {extrapolateRight: 'clamp', easing: Easing.out(Easing.exp)})
@@ -135,7 +138,7 @@ const ShotView: React.FC<{shot: DropShot; index: number; dur: number}> = ({shot,
   });
 
   const clip = CLIPS[shot.clip];
-  const showFg = shot.net;
+  const showFg = shot.net || !!shot.solid;
 
   return (
     <AbsoluteFill style={{backgroundColor: '#000'}}>
@@ -154,15 +157,20 @@ const ShotView: React.FC<{shot: DropShot; index: number; dur: number}> = ({shot,
       <AbsoluteFill style={{overflow: 'hidden', scale: trScale * insetScale, filter: wrapFilter}}>
         {segs.map((sg, si) => (
           <Sequence key={si} from={sg.start} durationInFrames={sg.len} name={`${shot.clip} x${sg.rate.toFixed(2)}`}>
-            <Video
-              src={staticFile(clip.src)}
-              muted
-              playbackRate={sg.rate}
-              trimBefore={Math.round(sg.srcStart * FPS)}
-              style={vidStyle(showFg ? 'grayscale(1) contrast(1.7) brightness(0.62)' : undefined)}
-            />
+            {shot.solid ? (
+              <AbsoluteFill style={{backgroundColor: shot.solid}} />
+            ) : (
+              <Video
+                src={staticFile(clip.src)}
+                muted
+                playbackRate={sg.rate}
+                trimBefore={Math.round(sg.srcStart * FPS)}
+                style={vidStyle(showFg ? 'grayscale(1) contrast(1.7) brightness(0.62)' : undefined)}
+              />
+            )}
             {showFg ? (
               <>
+                {shot.solid ? null : (
                 <AbsoluteFill
                   style={{
                     mixBlendMode: 'multiply',
@@ -171,6 +179,7 @@ const ShotView: React.FC<{shot: DropShot; index: number; dur: number}> = ({shot,
                     transform: 'rotate(45deg) scale(2)',
                   }}
                 />
+                )}
                 <Video
                   src={staticFile(clip.fg)}
                   muted
@@ -182,7 +191,37 @@ const ShotView: React.FC<{shot: DropShot; index: number; dur: number}> = ({shot,
             ) : null}
           </Sequence>
         ))}
+        {shot.ht ? (
+          <AbsoluteFill
+            style={{
+              mixBlendMode: 'multiply',
+              backgroundImage: 'radial-gradient(circle, #fff 0%, #fff 38%, #222 68%)',
+              backgroundSize: '9px 9px',
+              transform: 'rotate(45deg) scale(2)',
+            }}
+          />
+        ) : null}
       </AbsoluteFill>
+      {shot.banner ? (
+        <div
+          style={{
+            position: 'absolute',
+            left: 0,
+            right: 0,
+            top: 560,
+            height: 120,
+            backgroundColor: 'rgba(0,0,0,0.78)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transform: `scaleY(${clamp(lf / 3, 0, 1)})`,
+          }}
+        >
+          <span style={{fontFamily: `'${FONT_MAIN}'`, fontSize: 92, color: '#fff', letterSpacing: '0.12em', lineHeight: 1}}>
+            {shot.banner}
+          </span>
+        </div>
+      ) : null}
     </AbsoluteFill>
   );
 };

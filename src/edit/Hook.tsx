@@ -72,7 +72,7 @@ export const Hook: React.FC = () => {
       <AbsoluteFill style={{overflow: 'hidden', filter: frame < 14 ? `url(#${filterId})` : undefined}}>
         <Video
           name="Hook video (kamera ikut kepala)"
-          src={staticFile('Video/Hook&Lagu.mp4')}
+          src={staticFile('Video/raw.mp4')}
           muted
           style={{
             position: 'absolute',

@@ -48,8 +48,16 @@ export type DropShot = {
   /** arah hentakan geser saat potongan: 0=kiri 1=kanan 2=atas 3=bawah */
   whip: 0 | 1 | 2 | 3;
   /** jaring halftone di belakang Windah (hanya shot terpilih) */
+  /** gaya transisi: default = defocus + zoom mengendap (seperti referensi beat); 'whip' = geser + blur arah */
+  tr?: 'whip';
   net?: boolean;
   bw?: boolean;
+  /** halftone titik menutupi seluruh frame (B&W) */
+  ht?: boolean;
+  /** latar warna solid, Windah dari matte di depannya */
+  solid?: string;
+  /** banner teks melintang */
+  banner?: string;
   flash?: 'w' | 'strobe' | 'inv';
   /** pemisahan RGB ekstra di awal (px) */
   rgb?: number;
@@ -57,24 +65,21 @@ export type DropShot = {
 };
 
 export const SHOTS: DropShot[] = [
-  {t: 10.0, clip: 'c2', srcFrom: 0.0, ramp: 'sf', z: 1.25, at: [0.5, 0.36], whip: 0, net: true, flash: 'w', rgb: 18},
-  {t: 10.34, clip: 'c1', srcFrom: 0.35, ramp: 'n', z: 1.05, at: [0.5, 0.3], whip: 1},
+  {t: 10.0, clip: 'c2', srcFrom: 0.0, ramp: 'sf', z: 1.25, at: [0.5, 0.36], whip: 0, net: true, flash: 'w', rgb: 16},
+  {t: 10.34, clip: 'c1', srcFrom: 0.35, ramp: 'n', z: 1.05, at: [0.5, 0.3], whip: 1, tr: 'whip'},
   {t: 11.13, clip: 'c3', srcFrom: 0.2, ramp: 'sf', z: 1.25, at: [0.5, 0.36], whip: 2, flash: 'strobe', rgb: 12},
-  {t: 11.45, clip: 'c3', srcFrom: 1.6, ramp: 'fs', z: 1.38, at: [0.5, 0.34], whip: 3},
-  {t: 12.08, clip: 'c1', srcFrom: 1.9, ramp: 'sf', z: 1.2, at: [0.45, 0.3], whip: 0},
-  {t: 12.7, clip: 'c5', srcFrom: 0.0, ramp: 'sf', z: 1.12, at: [0.5, 0.4], whip: 1, net: true, flash: 'w', rgb: 14},
-  {t: 13.18, clip: 'c4', srcFrom: 0.3, ramp: 'sf', z: 1.0, at: [0.5, 0.2], whip: 2, rgb: 8},
-  {t: 13.97, clip: 'c2', srcFrom: 0.2, ramp: 'fs', z: 1.2, at: [0.5, 0.38], whip: 3, bw: true, flash: 'w'},
+  {t: 12.08, clip: 'c1', srcFrom: 1.9, ramp: 'sf', z: 1.2, at: [0.45, 0.3], whip: 0, solid: '#f2a31b'},
+  {t: 12.7, clip: 'c5', srcFrom: 0.0, ramp: 'sf', z: 1.12, at: [0.5, 0.4], whip: 1, tr: 'whip', net: true, flash: 'w', rgb: 14},
+  {t: 13.65, clip: 'c4', srcFrom: 0.3, ramp: 'sf', z: 1.0, at: [0.5, 0.2], whip: 2, bw: true, ht: true, banner: 'WASTED'},
   {t: 14.6, clip: 'c3', srcFrom: 2.3, ramp: 'sf', z: 1.3, at: [0.5, 0.34], whip: 0, flash: 'inv'},
-  {t: 15.23, clip: 'c1', srcFrom: 0.4, ramp: 'n', z: 1.1, at: [0.5, 0.3], whip: 1, rgb: 10},
+  {t: 15.23, clip: 'c2', srcFrom: 0.2, ramp: 'fs', z: 1.2, at: [0.5, 0.38], whip: 3, rgb: 10},
   {t: 15.7, clip: 'c5', srcFrom: 0.9, ramp: 'fs', z: 1.2, at: [0.5, 0.4], whip: 2, net: true, flash: 'w', rgb: 12},
-  {t: 16.49, clip: 'c4', srcFrom: 1.4, ramp: 'sf', z: 1.0, at: [0.5, 0.2], whip: 3},
-  {t: 17.12, clip: 'c2', srcFrom: 0.9, ramp: 'n', z: 1.25, at: [0.5, 0.36], whip: 0, bw: true, flash: 'strobe'},
+  {t: 16.49, clip: 'c4', srcFrom: 1.4, ramp: 'sf', z: 1.0, at: [0.5, 0.2], whip: 3, tr: 'whip'},
+  {t: 17.12, clip: 'c1', srcFrom: 0.4, ramp: 'n', z: 1.1, at: [0.5, 0.3], whip: 0, bw: true, flash: 'strobe'},
   {t: 17.75, clip: 'c3', srcFrom: 0.6, ramp: 'sf', z: 1.2, at: [0.5, 0.36], whip: 1, flash: 'w', rgb: 16},
-  {t: 18.22, clip: 'c1', srcFrom: 2.2, ramp: 'fs', z: 1.3, at: [0.45, 0.3], whip: 2, net: true},
-  {t: 18.7, clip: 'c4', srcFrom: 2.2, ramp: 'sf', z: 1.05, at: [0.5, 0.2], whip: 3, flash: 'inv', rgb: 10},
-  {t: 19.32, clip: 'c5', srcFrom: 0.3, ramp: 'n', z: 1.15, at: [0.5, 0.4], whip: 0},
-  {t: 19.71, clip: 'c2', srcFrom: 1.0, ramp: 'sf', z: 1.15, at: [0.5, 0.38], whip: 1, flash: 'w', rgb: 12},
+  {t: 18.7, clip: 'c2', srcFrom: 0.9, ramp: 'fs', z: 1.25, at: [0.5, 0.38], whip: 2, net: true},
+  {t: 19.32, clip: 'c4', srcFrom: 2.2, ramp: 'n', z: 1.05, at: [0.5, 0.2], whip: 3, tr: 'whip', flash: 'inv', rgb: 10},
+  {t: 19.71, clip: 'c5', srcFrom: 0.3, ramp: 'sf', z: 1.15, at: [0.5, 0.4], whip: 0, flash: 'w', rgb: 12},
   {t: 20.27, clip: 'c3', srcFrom: 2.9, ramp: 'sfs', z: 1.0, at: [0.5, 0.34], whip: 2, flash: 'w', rgb: 22, inset: 0.9},
 ];
 
@@ -187,20 +192,23 @@ export const SFX: Sfx[] = [
   // intro cepat (frame 0)
   sfx(0, 'Glitch click.wav', 0.32, 0.9),
   sfx(0.02, 'Camera flash sound effect.mp3', 0.9, 0.5),
-  // drop
-  sfx(10.0, 'Glitch click.wav', 0.32, 0.6),
-  sfx(11.0, 'Whoosh click.wav', 0.88, 0.4),
+  // drop: whoosh sebelum potongan
+  sfx(10.0, 'Glitch click.wav', 0.32, 0.5),
+  sfx(10.9, 'Whoosh click.wav', 0.88, 0.35),
   sfx(11.9, 'Whoosh click.wav', 0.88, 0.35),
   sfx(12.55, 'Whoosh click.wav', 0.88, 0.4),
-  sfx(13.82, 'Whoosh click.wav', 0.88, 0.4),
+  sfx(13.5, 'Whoosh click.wav', 0.88, 0.4),
   sfx(14.45, 'Whoosh click.wav', 0.88, 0.4),
-  sfx(15.55, 'Whoosh click.wav', 0.88, 0.4),
-  sfx(16.95, 'Whoosh click.wav', 0.88, 0.4),
+  sfx(16.34, 'Whoosh click.wav', 0.88, 0.4),
   sfx(17.6, 'Whoosh click.wav', 0.88, 0.4),
   sfx(18.55, 'Whoosh click.wav', 0.88, 0.4),
-  sfx(19.55, 'Whoosh click.wav', 0.88, 0.4),
+  sfx(19.17, 'Whoosh click.wav', 0.88, 0.4),
   sfx(20.12, 'Whoosh click.wav', 0.88, 0.5),
   sfx(20.27, 'Camera flash sound effect.mp3', 1.4, 0.4),
+  // meme Windah (sudah diberi gema) di transisi beat
+  sfx(10.0, 'meme/gema-a.wav', 2.8, 0.85),
+  sfx(15.7, 'meme/gema-b.wav', 2.9, 0.8),
+  sfx(20.27, 'meme/gema-c.wav', 1.3, 0.85),
 ];
 
 export const sec = (s: number) => Math.round(s * FPS);
