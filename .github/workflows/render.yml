@@ -1,0 +1,78 @@
+name: Render video (kualitas tinggi)
+
+on:
+  workflow_dispatch:
+    inputs:
+      composition:
+        description: "ID composition"
+        default: "WindahJedag"
+      crf:
+        description: "CRF H.264 (lebih kecil = lebih bagus; 14 = hampir lossless visual)"
+        default: "14"
+      scale:
+        description: "Skala render (1 = 1080x1350 penuh)"
+        default: "1"
+  push:
+    tags:
+      - "render-*"
+
+concurrency:
+  group: render-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint & typecheck
+        run: npm run lint
+
+      - name: Install system libraries for headless Chrome
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ffmpeg libnss3 libdbus-1-3 libatk1.0-0 libgbm-dev libasound2t64 libxrandr2 libxkbcommon-dev libxfixes3 libxcomposite1 libxdamage1 libatk-bridge2.0-0 libpango-1.0-0 libcairo2 libcups2
+
+      - name: Ensure Remotion browser
+        run: npx remotion browser ensure
+
+      - name: Render (H.264 CRF rendah, AAC 320k, frame JPEG q100)
+        env:
+          COMPOSITION: ${{ inputs.composition || 'WindahJedag' }}
+          CRF: ${{ inputs.crf || '14' }}
+          SCALE: ${{ inputs.scale || '1' }}
+        run: |
+          mkdir -p out
+          npx remotion render "$COMPOSITION" out/windah-jedag.mp4 \
+            --codec=h264 \
+            --crf="$CRF" \
+            --x264-preset=slow \
+            --pixel-format=yuv420p \
+            --color-space=bt709 \
+            --image-format=jpeg \
+            --jpeg-quality=100 \
+            --audio-codec=aac \
+            --audio-bitrate=320k \
+            --scale="$SCALE" \
+            --concurrency=100%
+
+      - name: Probe hasil
+        run: ffprobe -v error -show_entries stream=codec_name,width,height,r_frame_rate,bit_rate,duration -of default=nw=1 out/windah-jedag.mp4
+
+      - name: Upload video
+        uses: actions/upload-artifact@v4
+        with:
+          name: windah-jedag-${{ github.run_number }}
+          path: out/windah-jedag.mp4
+          if-no-files-found: error
+          retention-days: 14
