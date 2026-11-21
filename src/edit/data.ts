@@ -1,18 +1,19 @@
-import {FPS, f} from './timing';
+import {FPS} from './timing';
 
 /**
  * ============ DATA EDIT (ubah di sini) ============
- * Drop: waktu dalam "sixteenth" (n) dari awal drop, 4 sixteenth = 1 beat (96 BPM), 18 beat = 72 sixteenth.
- * Caption hook: detik (dari awal video), diukur dari puncak vokal Hook&Lagu.mp4.
+ * Drop: waktu potongan dalam DETIK GLOBAL (drop mulai 10.0 dtk), dipilih di onset lagu hasil ukur
+ * (lihat measured.ts: HITS). Caption hook: detik dari awal video.
  */
 
-export type ClipId = 'c1' | 'c2' | 'c3' | 'c4';
+export type ClipId = 'c1' | 'c2' | 'c3' | 'c4' | 'c5';
 
-export const CLIPS: Record<ClipId, {src: string; fg: string}> = {
-  c1: {src: 'Video/lv_0_20261121012119.mp4', fg: 'Matte/c1-fg.webm'},
-  c2: {src: 'Video/lv_0_20261121012256.mp4', fg: 'Matte/c2-fg.webm'},
-  c3: {src: 'Video/lv_0_20261121012416.mp4', fg: 'Matte/c3-fg.webm'},
-  c4: {src: 'Video/lv_0_20261121012555.mp4', fg: 'Matte/c4-fg.webm'},
+export const CLIPS: Record<ClipId, {src: string; fg: string; dur: number}> = {
+  c1: {src: 'Video/lv_0_20261121012119.mp4', fg: 'Matte/c1-fg.webm', dur: 3.55},
+  c2: {src: 'Video/lv_0_20261121012256.mp4', fg: 'Matte/c2-fg.webm', dur: 1.88},
+  c3: {src: 'Video/lv_0_20261121012416.mp4', fg: 'Matte/c3-fg.webm', dur: 3.95},
+  c4: {src: 'Video/lv_0_20261121012555.mp4', fg: 'Matte/c4-fg.webm', dur: 3.55},
+  c5: {src: 'Video/lv_0_20261121012145.mp4', fg: 'Matte/c5-fg.webm', dur: 2.03},
 };
 
 // Lacak wajah (deteksi YuNet, koordinat sumber 0..1): [detik, u, v]
@@ -21,50 +22,60 @@ export const FACE: Record<ClipId, [number, number, number][]> = {
   c2: [[0, 0.52, 0.49], [1.88, 0.52, 0.485]],
   c3: [[0, 0.436, 0.385], [0.5, 0.477, 0.388], [1, 0.544, 0.444], [1.5, 0.506, 0.484], [2, 0.491, 0.494], [2.5, 0.432, 0.455], [3, 0.505, 0.486], [3.5, 0.502, 0.474], [3.95, 0.496, 0.461]],
   c4: [[0, 0.466, 0.157], [1, 0.473, 0.168], [1.5, 0.498, 0.146], [2, 0.501, 0.141], [2.67, 0.409, 0.13], [3.5, 0.468, 0.139]],
+  c5: [[0, 0.54, 0.58], [0.6, 0.5, 0.56], [1.2, 0.49, 0.54], [2.03, 0.52, 0.52]],
 };
 
-/**
- * Satu shot = satu potongan di beat. Kamera dibuat tenang (hanya drift pelan);
- * gerak datang dari slow motion (rate < 1) dan blur transisi yang naik-turun.
- */
+/** Profil kecepatan: [porsi durasi shot, rate]. sf = slow-mo -> cepat, fs = cepat -> slow-mo. */
+export type Ramp = [number, number][];
+export const RAMPS: Record<'n' | 'sf' | 'fs' | 'sfs', Ramp> = {
+  n: [[1, 1]],
+  sf: [[0.5, 0.35], [0.5, 1.9]],
+  fs: [[0.45, 1.9], [0.55, 0.4]],
+  sfs: [[0.35, 0.4], [0.35, 2], [0.3, 0.5]],
+};
+
 export type DropShot = {
-  n0: number;
-  n1: number;
+  /** detik global shot mulai (jatuh di onset lagu) */
+  t: number;
   clip: ClipId;
   /** detik mulai di klip sumber */
   srcFrom: number;
-  /** kecepatan: 0.5 = slow motion, 1 = normal */
-  rate: number;
+  ramp: keyof typeof RAMPS;
   /** zoom relatif crop 4:5 (1 = isi bingkai) */
   z: number;
   /** posisi titik fokus (wajah) di bingkai 0..1 */
   at: [number, number];
-  /** tambahan zoom pelan sepanjang shot (mis. 0.05 = lima persen) */
-  drift?: number;
-  /** jaring halftone hitam-putih di belakang Windah (pakai matte) */
+  /** arah hentakan geser saat potongan: 0=kiri 1=kanan 2=atas 3=bawah */
+  whip: 0 | 1 | 2 | 3;
+  /** jaring halftone di belakang Windah (hanya shot terpilih) */
   net?: boolean;
-  /** seluruh shot hitam-putih */
   bw?: boolean;
-  /** kilat putih di awal potongan (0..1) */
-  flash?: number;
-  /** kilat negatif 2 frame di awal */
-  invert?: boolean;
-  /** pemisahan RGB (px) di awal potongan */
+  flash?: 'w' | 'strobe' | 'inv';
+  /** pemisahan RGB ekstra di awal (px) */
   rgb?: number;
-  /** bingkai menyusut di dalam hitam + film strip (0..1) */
   inset?: number;
 };
 
 export const SHOTS: DropShot[] = [
-  {n0: 0, n1: 8, clip: 'c2', srcFrom: 0.0, rate: 0.5, z: 1.25, at: [0.5, 0.36], drift: 0.07, net: true, flash: 0.95, rgb: 14},
-  {n0: 8, n1: 16, clip: 'c2', srcFrom: 0.62, rate: 1, z: 1.1, at: [0.5, 0.4], drift: 0.04},
-  {n0: 16, n1: 24, clip: 'c1', srcFrom: 0.35, rate: 0.5, z: 1.0, at: [0.5, 0.3], drift: 0.06, net: true, flash: 0.5, rgb: 10},
-  {n0: 24, n1: 32, clip: 'c1', srcFrom: 1.9, rate: 1, z: 1.25, at: [0.45, 0.3], drift: 0.04},
-  {n0: 32, n1: 40, clip: 'c3', srcFrom: 0.2, rate: 0.5, z: 1.25, at: [0.5, 0.36], drift: 0.06, net: true, flash: 0.7, rgb: 12},
-  {n0: 40, n1: 48, clip: 'c3', srcFrom: 1.0, rate: 1, z: 1.15, at: [0.5, 0.38], drift: 0.04, net: true, bw: true},
-  {n0: 48, n1: 56, clip: 'c3', srcFrom: 2.3, rate: 0.6, z: 1.3, at: [0.5, 0.34], drift: 0.05, invert: true},
-  {n0: 56, n1: 64, clip: 'c4', srcFrom: 0.3, rate: 0.5, z: 1.0, at: [0.5, 0.2], drift: 0.05, net: true, flash: 0.6, rgb: 10},
-  {n0: 64, n1: 72, clip: 'c4', srcFrom: 1.25, rate: 1, z: 1.0, at: [0.5, 0.2], drift: 0, flash: 1, rgb: 20, inset: 0.9},
+  {t: 10.0, clip: 'c2', srcFrom: 0.0, ramp: 'sf', z: 1.25, at: [0.5, 0.36], whip: 0, net: true, flash: 'w', rgb: 18},
+  {t: 10.34, clip: 'c1', srcFrom: 0.35, ramp: 'n', z: 1.05, at: [0.5, 0.3], whip: 1},
+  {t: 11.13, clip: 'c3', srcFrom: 0.2, ramp: 'sf', z: 1.25, at: [0.5, 0.36], whip: 2, flash: 'strobe', rgb: 12},
+  {t: 11.45, clip: 'c3', srcFrom: 1.6, ramp: 'fs', z: 1.38, at: [0.5, 0.34], whip: 3},
+  {t: 12.08, clip: 'c1', srcFrom: 1.9, ramp: 'sf', z: 1.2, at: [0.45, 0.3], whip: 0},
+  {t: 12.7, clip: 'c5', srcFrom: 0.0, ramp: 'sf', z: 1.12, at: [0.5, 0.4], whip: 1, net: true, flash: 'w', rgb: 14},
+  {t: 13.18, clip: 'c4', srcFrom: 0.3, ramp: 'sf', z: 1.0, at: [0.5, 0.2], whip: 2, rgb: 8},
+  {t: 13.97, clip: 'c2', srcFrom: 0.2, ramp: 'fs', z: 1.2, at: [0.5, 0.38], whip: 3, bw: true, flash: 'w'},
+  {t: 14.6, clip: 'c3', srcFrom: 2.3, ramp: 'sf', z: 1.3, at: [0.5, 0.34], whip: 0, flash: 'inv'},
+  {t: 15.23, clip: 'c1', srcFrom: 0.4, ramp: 'n', z: 1.1, at: [0.5, 0.3], whip: 1, rgb: 10},
+  {t: 15.7, clip: 'c5', srcFrom: 0.9, ramp: 'fs', z: 1.2, at: [0.5, 0.4], whip: 2, net: true, flash: 'w', rgb: 12},
+  {t: 16.49, clip: 'c4', srcFrom: 1.4, ramp: 'sf', z: 1.0, at: [0.5, 0.2], whip: 3},
+  {t: 17.12, clip: 'c2', srcFrom: 0.9, ramp: 'n', z: 1.25, at: [0.5, 0.36], whip: 0, bw: true, flash: 'strobe'},
+  {t: 17.75, clip: 'c3', srcFrom: 0.6, ramp: 'sf', z: 1.2, at: [0.5, 0.36], whip: 1, flash: 'w', rgb: 16},
+  {t: 18.22, clip: 'c1', srcFrom: 2.2, ramp: 'fs', z: 1.3, at: [0.45, 0.3], whip: 2, net: true},
+  {t: 18.7, clip: 'c4', srcFrom: 2.2, ramp: 'sf', z: 1.05, at: [0.5, 0.2], whip: 3, flash: 'inv', rgb: 10},
+  {t: 19.32, clip: 'c5', srcFrom: 0.3, ramp: 'n', z: 1.15, at: [0.5, 0.4], whip: 0},
+  {t: 19.71, clip: 'c2', srcFrom: 1.0, ramp: 'sf', z: 1.15, at: [0.5, 0.38], whip: 1, flash: 'w', rgb: 12},
+  {t: 20.27, clip: 'c3', srcFrom: 2.9, ramp: 'sfs', z: 1.0, at: [0.5, 0.34], whip: 2, flash: 'w', rgb: 22, inset: 0.9},
 ];
 
 // ---------------- Caption kata-per-kata (HOOK, 0 - 9.9 dtk) ----------------
@@ -161,31 +172,35 @@ export const HOOK_PHRASES: Phrase[] = [
   },
 ];
 
-// ---------------- SFX (drop) ----------------
+// ---------------- SFX ----------------
 export type Sfx = {
-  /** sixteenth (boleh pecahan) relatif awal drop */
-  n: number;
+  /** detik global */
+  t: number;
   file: string;
   dur: number;
   vol: number;
 };
 
-const sfx = (n: number, file: string, dur: number, vol: number): Sfx => ({n, file, dur, vol});
+const sfx = (t: number, file: string, dur: number, vol: number): Sfx => ({t, file, dur, vol});
 
 export const SFX: Sfx[] = [
-  sfx(0, 'Glitch click.wav', 0.32, 0.7),
-  sfx(7.5, 'Whoosh click.wav', 0.88, 0.45),
-  sfx(15.5, 'Whoosh click.wav', 0.88, 0.45),
-  sfx(23.5, 'Whoosh click.wav', 0.88, 0.45),
-  sfx(31.5, 'Whoosh click.wav', 0.88, 0.45),
-  sfx(34, 'Click riser.wav', 3.24, 0.3),
-  sfx(39.5, 'Whoosh click.wav', 0.88, 0.45),
-  sfx(47.5, 'Whoosh click.wav', 0.88, 0.45),
-  sfx(55.5, 'Whoosh click.wav', 0.88, 0.5),
-  sfx(63.5, 'Whoosh click.wav', 0.88, 0.5),
-  sfx(64, 'Glitch click.wav', 0.32, 0.6),
-  sfx(68, 'Camera flash sound effect.mp3', 2.09, 0.4),
+  // intro cepat (frame 0)
+  sfx(0, 'Glitch click.wav', 0.32, 0.9),
+  sfx(0.02, 'Camera flash sound effect.mp3', 0.9, 0.5),
+  // drop
+  sfx(10.0, 'Glitch click.wav', 0.32, 0.6),
+  sfx(11.0, 'Whoosh click.wav', 0.88, 0.4),
+  sfx(11.9, 'Whoosh click.wav', 0.88, 0.35),
+  sfx(12.55, 'Whoosh click.wav', 0.88, 0.4),
+  sfx(13.82, 'Whoosh click.wav', 0.88, 0.4),
+  sfx(14.45, 'Whoosh click.wav', 0.88, 0.4),
+  sfx(15.55, 'Whoosh click.wav', 0.88, 0.4),
+  sfx(16.95, 'Whoosh click.wav', 0.88, 0.4),
+  sfx(17.6, 'Whoosh click.wav', 0.88, 0.4),
+  sfx(18.55, 'Whoosh click.wav', 0.88, 0.4),
+  sfx(19.55, 'Whoosh click.wav', 0.88, 0.4),
+  sfx(20.12, 'Whoosh click.wav', 0.88, 0.5),
+  sfx(20.27, 'Camera flash sound effect.mp3', 1.4, 0.4),
 ];
 
-export const shotFrames = (s: DropShot) => ({from: f(s.n0), to: f(s.n1)});
 export const sec = (s: number) => Math.round(s * FPS);
