@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       ref:
-        description: "Branch/tag/commit yang dirender (tag v3-preview = versi sebelumnya, v4-meme = v4 dengan meme SFX)"
+        description: "Branch/tag/commit yang dirender (branch v3-preview = versi sebelumnya, v4-meme = v4 dengan meme SFX)"
         default: "jedag-v1"
       composition:
         description: "ID composition (WindahJedag = tanpa meme SFX, WindahJedagMeme = dengan meme SFX)"
