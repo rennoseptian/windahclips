@@ -1,7 +1,6 @@
 import React from 'react';
 import {AbsoluteFill, Easing, interpolate, useCurrentFrame} from 'remotion';
-import {PHRASES, type Phrase, type Word} from './data';
-import {f} from './timing';
+import {HOOK_PHRASES, sec, type Phrase, type Word} from './data';
 
 export const FONT_MAIN = 'Coolvetica Hv Comp';
 export const FONT_SCRIPT = 'Aston Script';
@@ -108,9 +107,9 @@ const base = (word: Word): React.CSSProperties => ({
 
 const PhraseView: React.FC<{phrase: Phrase}> = ({phrase}) => {
   const frame = useCurrentFrame();
-  const starts = phrase.words.map((w) => f(w.n));
+  const starts = phrase.words.map((w) => sec(w.s));
   const phraseStart = Math.min(...starts);
-  const phraseEnd = f(phrase.n1);
+  const phraseEnd = sec(phrase.end);
   if (frame < phraseStart || frame >= phraseEnd) return null;
   const lastStart = Math.max(...starts);
 
@@ -118,9 +117,9 @@ const PhraseView: React.FC<{phrase: Phrase}> = ({phrase}) => {
   return (
     <AbsoluteFill
       style={{
-        justifyContent: 'flex-end',
+        justifyContent: 'flex-start',
         alignItems: 'center',
-        paddingBottom: phrase.bottom ?? 120,
+        paddingTop: 84,
       }}
     >
       {rows.map((r) => (
@@ -147,10 +146,10 @@ const PhraseView: React.FC<{phrase: Phrase}> = ({phrase}) => {
   );
 };
 
-/** Dipasang di dalam Sequence yang dimulai di awal drop (frame lokal = frame drop). */
+/** Caption hook: dipasang di Sequence hook (frame lokal = frame global, 0 - 9.96 dtk). */
 export const Words: React.FC = () => (
   <AbsoluteFill>
-    {PHRASES.map((p, i) => (
+    {HOOK_PHRASES.map((p, i) => (
       <PhraseView key={i} phrase={p} />
     ))}
   </AbsoluteFill>

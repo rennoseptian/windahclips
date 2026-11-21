@@ -3,6 +3,7 @@ import {AbsoluteFill, Sequence, staticFile, useDelayRender} from 'remotion';
 import {Audio, Video} from '@remotion/media';
 import {loadFont} from '@remotion/fonts';
 import {Drop} from './edit/Drop';
+import {Words} from './edit/Words';
 import {FONT_MAIN, FONT_SCRIPT} from './edit/Words';
 import {DROP_FRAMES, HEIGHT, HOOK_END, WIDTH} from './edit/timing';
 
@@ -39,6 +40,11 @@ export const WindahJedag: React.FC = () => {
             height: HOOK_SIZE,
           }}
         />
+        {/* scrim tipis di atas supaya caption terbaca di latar apa pun */}
+        <AbsoluteFill
+          style={{background: 'linear-gradient(to bottom, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.18) 32%, rgba(0,0,0,0) 48%)'}}
+        />
+        <Words />
       </Sequence>
 
       <Sequence from={HOOK_END} durationInFrames={DROP_FRAMES} name="Drop jedag-jedug">
