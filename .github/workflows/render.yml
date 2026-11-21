@@ -3,8 +3,11 @@ name: Render video (kualitas tinggi)
 on:
   workflow_dispatch:
     inputs:
+      ref:
+        description: "Branch/tag/commit yang dirender (tag v3-preview = versi sebelumnya, v4-meme = v4 dengan meme SFX)"
+        default: "jedag-v1"
       composition:
-        description: "ID composition"
+        description: "ID composition (WindahJedag = tanpa meme SFX, WindahJedagMeme = dengan meme SFX)"
         default: "WindahJedag"
       crf:
         description: "CRF H.264 (lebih kecil = lebih bagus; 14 = hampir lossless visual)"
@@ -26,6 +29,8 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.ref }}
 
       - uses: actions/setup-node@v4
         with:
@@ -72,7 +77,7 @@ jobs:
       - name: Upload video
         uses: actions/upload-artifact@v4
         with:
-          name: windah-jedag-${{ github.run_number }}
+          name: windah-jedag-${{ inputs.ref || 'tag' }}-${{ inputs.composition || 'WindahJedag' }}-${{ github.run_number }}
           path: out/windah-jedag.mp4
           if-no-files-found: error
           retention-days: 14

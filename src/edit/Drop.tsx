@@ -338,9 +338,9 @@ const Tail: React.FC = () => {
   return o > 0 ? <AbsoluteFill style={{backgroundColor: '#000', opacity: o}} /> : null;
 };
 
-const SfxTrack: React.FC = () => (
+const SfxTrack: React.FC<{meme: boolean}> = ({meme}) => (
   <>
-    {SFX.filter((s) => s.t >= 10).map((s, i) => (
+    {SFX.filter((s) => s.t >= 10 && (meme || !s.file.startsWith('meme/'))).map((s, i) => (
       <Sequence key={i} from={df(s.t)} durationInFrames={Math.ceil(s.dur * FPS)} name={`SFX ${s.file}`}>
         <Audio src={staticFile(`Sfx/${s.file}`)} volume={s.vol} />
       </Sequence>
@@ -349,7 +349,7 @@ const SfxTrack: React.FC = () => (
 );
 
 /** Dipasang di Sequence yang mulai di HOOK_END. Frame lokal = frame drop. */
-export const Drop: React.FC = () => (
+export const Drop: React.FC<{meme: boolean}> = ({meme}) => (
   <AbsoluteFill>
     {SHOTS.map((s, i) => {
       const {from, to} = shotRange(i);
@@ -365,7 +365,7 @@ export const Drop: React.FC = () => (
     <Flashes />
     <FilmStrip />
     <Tail />
-    <SfxTrack />
+    <SfxTrack meme={meme} />
   </AbsoluteFill>
 );
 

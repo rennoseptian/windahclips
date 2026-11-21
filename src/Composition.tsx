@@ -7,7 +7,12 @@ import {Hook} from './edit/Hook';
 import {FONT_MAIN, FONT_SCRIPT} from './edit/Words';
 import {DROP_FRAMES, HOOK_END} from './edit/timing';
 
-export const WindahJedag: React.FC = () => {
+export type JedagProps = {
+  /** SFX meme Windah (bergema) di transisi beat */
+  meme?: boolean;
+};
+
+export const WindahJedag: React.FC<JedagProps> = ({meme = false}) => {
   const {delayRender, continueRender, cancelRender} = useDelayRender();
   const [handle] = useState(() => delayRender('Memuat font'));
 
@@ -44,7 +49,7 @@ export const WindahJedag: React.FC = () => {
       </Sequence>
 
       <Sequence from={HOOK_END} durationInFrames={DROP_FRAMES} name="Drop jedag-jedug">
-        <Drop />
+        <Drop meme={meme} />
       </Sequence>
     </AbsoluteFill>
   );
