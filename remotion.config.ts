@@ -11,3 +11,6 @@ Config.setRspack(true);
 Config.setVideoImageFormat("jpeg");
 Config.setOverwriteOutput(true);
 Config.setDefaultPremountInSeconds(2);
+
+// Efek @remotion/effects memakai WebGL; saat render dibutuhkan renderer "angle".
+Config.setChromiumOpenGlRenderer("angle");
